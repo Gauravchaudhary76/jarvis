@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Speech Recognition</title>
+</head>
+<body>
+    <button id="start" onclick="startRecognition()">Start Recognition</button>
+    <button id="end" onclick="stopRecognition()">Stop Recognition</button>
+    <p id="output"></p>
+    <div id="status">Ready</div>
+    <script>
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+        let recognition;
+        let isRecognizing = false;
+
+        function startRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                output.textContent = "Speech recognition not supported in this browser.";
+                return;
+            }
+            
+            recognition = new SpeechRecognition();
+            recognition.lang = 'en';
+            recognition.continuous = false;  // Changed to false for better control
+            recognition.interimResults = false;
+
+            recognition.onstart = function() {
+                status.textContent = "Listening...";
+                isRecognizing = true;
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                output.textContent = transcript;
+                status.textContent = "Speech captured";
+            };
+
+            recognition.onend = function() {
+                status.textContent = "Recognition ended";
+                isRecognizing = false;
+            };
+
+            recognition.onerror = function(event) {
+                status.textContent = "Error: " + event.error;
+                isRecognizing = false;
+            };
+
+            recognition.start();
+        }
+
+        function stopRecognition() {
+            if (recognition && isRecognizing) {
+                recognition.stop();
+            }
+        }
+
+        function clearOutput() {
+            output.textContent = "";
+            status.textContent = "Ready";
+        }
+    </script>
+</body>
+</html>
