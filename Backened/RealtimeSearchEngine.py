@@ -56,38 +56,55 @@ def Information():
     return data
 def RealtimeSearchEngine(prompt):
     global messages
+
+    # Load existing chat log
     with open(r"Data/ChatLog.json", "r") as f:
         messages = load(f)
+
+    # Append new user message
     messages.append({"role": "user", "content": f"{prompt}"})
+
+    # ✅ Keep only the last 5 exchanges to reduce token usage
+    messages = messages[-5:]
+
     chatbot_messages = SystemChatBot + [
         {"role": "system", "content": GoogleSearch(prompt)},
         {"role": "system", "content": Information()}
     ] + messages
-    completion = client.chat.completions.create(
-        model="llama3-70b-8192",
-        messages=chatbot_messages,
-        temperature=0.7,
-        max_tokens=2048,
-        top_p=1,
-        stop=None,
-    )
-    Answer = completion.choices[0].message.content  # no streaming
-    Answer = Answer.strip().replace("</s>", "")
-    messages.append({"role": "assistant", "content": Answer})
-    with open(r"Data/ChatLog.json", "w") as f:
-        dump(messages, f, indent=4)
 
-    # Custom override for "who made you" type questions
-    trigger_phrases = [
-        "who made you",
-        "who is your creator",
-        "who created you",
-        "who developed you",
-        "who built you"
-    ]
-    if any(phrase in prompt.lower() for phrase in trigger_phrases):
-        return "I am created by Gaurav Chaudhary."
-    return AnswerModifier(Answer=Answer)
+    try:
+        completion = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=chatbot_messages,
+            temperature=0.7,
+            max_tokens=512,   # ✅ prevent large requests
+            top_p=1,
+            stop=None,
+        )
+
+        Answer = completion.choices[0].message.content.strip().replace("</s>", "")
+        messages.append({"role": "assistant", "content": Answer})
+
+        # Save trimmed messages back to file
+        with open(r"Data/ChatLog.json", "w") as f:
+            dump(messages, f, indent=4)
+
+        # Custom override for "who made you" type questions
+        trigger_phrases = [
+            "who made you",
+            "who is your creator",
+            "who created you",
+            "who developed you",
+            "who built you"
+        ]
+        if any(phrase in prompt.lower() for phrase in trigger_phrases):
+            return "I am created by Gaurav Chaudhary."
+
+        return AnswerModifier(Answer=Answer)
+
+    except Exception as e:
+        return f"⚠️ Error: {str(e)}"
+
 if __name__ == "__main__":
     while True:
         prompt = input("Enter your query:")

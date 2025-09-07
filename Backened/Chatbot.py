@@ -54,30 +54,34 @@ def AnswerModifier(Answer):
     return modified_answer
 
 def ChatBot(Query):
-    """This function sends the user's query to the chatbot and returns the AI's resonse."""
+    """This function sends the user's query to the chatbot and returns the AI's response."""
     try:
         with open(r"Data/ChatLog.json", "r") as f:
             messages = load(f)
-        messages.append({"role": "user", "content": f"{Query}" })   
+
+        messages.append({"role": "user", "content": f"{Query}"})
+
         completion = client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="llama-3.1-8b-instant",   # ✅ Use valid Groq model
             messages=SystemChatBot + [{"role": "system", "content": RealtimeInformation()}] + messages,
-            max_tokens=1024,
+            max_tokens=512,  # reduce to avoid token errors
             temperature=0.7,
             top_p=1,
-            stop=None, 
+            stop=None,
         )
-        Answer = completion.choices[0].message.content  # <-- FIXED
-        Answer = Answer.replace("</s>","")
+
+        Answer = completion.choices[0].message.content.strip().replace("</s>", "")
         messages.append({"role": "assistant", "content": Answer})
-        with open(r"Data\ChatLog.json", "w") as f:
+
+        with open(r"Data/ChatLog.json", "w") as f:
             dump(messages, f, indent=4)
+
         return AnswerModifier(Answer=Answer)
+
     except Exception as e:
-        print(f"Error: {e} ")
-        with open(r"Data\ChatLog.json", "w") as f:
-            dump(messages, f, indent=4)
-        return ChatBot(Query)    
+        print(f"Error: {e}")
+        return "⚠️ Something went wrong. Please try again."
+ 
     
 if __name__ == "__main__":
     while True:
