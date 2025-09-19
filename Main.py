@@ -104,10 +104,11 @@ def MainExecution():
                 Automation(list(Decision))
                 TaskExecution = True
     if ImageExecution == True:
-        with open(r"Fronted\Files\ImageGeneratoion.data", "w") as file:
+        with open(r"Frontend\Files\ImageGeneratoion.data", "w") as file:
             file.write(f"{ImageGenerationQuery},True")
         try:
-            p1 = subprocess.Popen(['python', r'backend\Imagegeneration.py'],
+            p1 = subprocess.Popen(['python', r'Backened\ImageGeneration.py'], 
+
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                   stdin=subprocess.PIPE, shell=False)
 
