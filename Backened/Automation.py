@@ -34,21 +34,15 @@ SystemChatBot = [{"role": "system", "content": f"Hello, I am {username}. You're 
 useragent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
 
 # Text-to-speech
-engine = pyttsx3.init()
-def speak(text):
-    engine.say(text)
-    engine.runAndWait()
 
 def tell_time():
     now = datetime.datetime.now().strftime("%H:%M:%S")
     print(f"⏰ Time: {now}")
-    speak(f"The time is {now}")
 
 def take_screenshot():
     path = os.path.join(os.getcwd(), f"screenshot_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
     pyautogui.screenshot(path)
     print(f"📸 Screenshot saved to {path}")
-    speak("Screenshot taken")
 
 def GoogleSearch(Topic):
     try:

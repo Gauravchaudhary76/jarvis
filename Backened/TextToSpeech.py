@@ -12,32 +12,29 @@ async def TextToAudioFile(text) -> None:
         os.remove(file_path)
     communicate = edge_tts.Communicate(text, voice=AssistantVoice,pitch ='+5Hz',rate='+13%')
     await communicate.save(r'Data\speech.mp3')
-def TTS(Text, func=lambda r=None: True):
-    while True:
+def _play_audio(Text, func=lambda r=None: True):
+    try:
+        asyncio.run(TextToAudioFile(Text))
+        pygame.mixer.init()
+        pygame.mixer.music.load(r"Data\speech.mp3")
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            if not func():
+                break
+            pygame.time.Clock().tick(10)
+        return True
+    except Exception as e:
+        print(f"Error in TTS playback: {e}")
+        return False
+    finally:
         try:
-            asyncio.run(TextToAudioFile(Text))
-            pygame.mixer.init()
-            pygame.mixer.music.load(r"Data\speech.mp3")
-            pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy():
-                if func() == False:
-                    break
-                pygame.time.Clock().tick(10)
-            return True
-            
-        except Exception as e:
-            print(f"Error in TTS: {e}")
-
-        finally:
-            try:
-                func(False)
-                pygame.mixer.music.stop()
-                pygame.mixer.quit()
-            except Exception as e:
-                print(f"Error stopping TTS: {e}") 
+            pygame.mixer.music.stop()
+            pygame.mixer.quit()
+        except Exception:
+            pass
 def TextToSpeech(Text, func=lambda r=None: True):
     """This function converts text to speech and plays it."""
-    Data = str(Text).split(".")       
+    Data = str(Text).split(".")
     responses = [
         "The rest of the result has been printed to the chat screen, kindly check it out sir.",
         "The rest of the text is now on the chat screen, sir, please check it.",
@@ -60,10 +57,11 @@ def TextToSpeech(Text, func=lambda r=None: True):
         "Please review the chat screen for the rest of the text, sir.",
         "Sir, look at the chat screen for the complete answer."
     ]
+    final_text = Text
     if len(Data) > 4 and len(Text) >= 250:
-        TTS(" ".join(Text.split(".")[0:2])+ ". " + random.choice(responses),func) 
-    else:
-        TTS(Text, func)
+        final_text = " ".join(Text.split(".")[0:2]) + ". " + random.choice(responses)
+    _play_audio(final_text, func)
+
 if __name__ == "__main__":
     while True:
         TextToSpeech(input("Enter text to convert to speech: "))

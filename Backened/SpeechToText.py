@@ -239,49 +239,50 @@ class JarvisSpeechRecognition:
         if self.server_process:
             self.server_process.terminate()
     
-    def run(self):
-        """Main execution method"""
+    def recognize(self):
+        """Main execution method for a single recognition."""
         try:
-            # Setup
-            self.create_html_file()
-            self.start_server()
-            
-            if not self.setup_driver():
-                print("Failed to setup driver")
-                return
-            
-            print("Jarvis Speech Recognition Started")
-            print("Press Ctrl+C to stop")
-            
-            while True:
-                self.set_assistant_status("Listening")
-                text = self.speech_recognition()
-                
-                if text:
-                    print(f"Recognized: {text}")
-                    self.set_assistant_status("Processing")
-                    # Here you can add your voice command processing logic
-                    # process_voice_command(text)
-                else:
-                    print("No speech recognized, trying again...")
-                
-                time.sleep(1)
-                
-        except KeyboardInterrupt:
-            print("\nStopping Jarvis...")
+            self.set_assistant_status("Listening")
+            text = self.speech_recognition()
+
+            if text:
+                print(f"Recognized: {text}")
+                self.set_assistant_status("Processing")
+                return text  # <-- RETURN the text
+            else:
+                print("No speech recognized.")
+                return "" # <-- RETURN empty string if nothing was heard
+
         except Exception as e:
-            print(f"Error: {e}")
-        finally:
-            self.cleanup()
+            print(f"Error in recognition cycle: {e}")
+            return "" # <-- RETURN empty string on error
 
 if __name__ == "__main__":
+
     # Create .env file example if it doesn't exist
     if not os.path.exists(".env"):
         with open(".env", "w") as f:
             f.write("InputLanguage=en-US\n")
         print("Created .env file with default language settings")
-    
-    jarvis = JarvisSpeechRecognition()
-    jarvis.run()
+
+    jarvis_stt = JarvisSpeechRecognition()
+    # Setup runs once
+    jarvis_stt.create_html_file()
+    jarvis_stt.start_server()
+    if not jarvis_stt.setup_driver():
+        print("Failed to setup driver. Exiting.")
+    else:
+        # This loop is for standalone testing only
+        try:
+            while True:
+                print("\nListening for command...")
+                recognized_text = jarvis_stt.recognize() # Use the new method
+                if recognized_text:
+                    print(f"--> COMMAND: {recognized_text}")
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nStopping Jarvis...")
+        finally:
+            jarvis_stt.cleanup()
 
 

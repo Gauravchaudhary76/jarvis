@@ -13,6 +13,7 @@ from Backened.Model import FirstLayerDMW
 from Backened.RealtimeSearchEngine import RealtimeSearchEngine
 from Backened.Automation import Automation
 from Backened.SpeechToText import JarvisSpeechRecognition
+import asyncio
 from Backened.Chatbot import ChatBot
 from Backened.TextToSpeech import TextToSpeech
 from dotenv import dotenv_values
@@ -80,42 +81,67 @@ def InitialExecuton():
     ShowChatOnGUI()
 
 
+
+# --- Speech recognizer instance setup ---
+try:
+    print("Initializing Speech Recognition Engine...")
+    speech_recognizer = JarvisSpeechRecognition()
+    speech_recognizer.create_html_file()
+    speech_recognizer.start_server()
+    if not speech_recognizer.setup_driver():
+        raise RuntimeError("Failed to setup Selenium driver for speech recognition.")
+    print("Speech Recognition Engine Ready.")
+except Exception as e:
+    print(f"FATAL ERROR during STT setup: {e}")
+    speech_recognizer = None
+
 def MainExecution():
+    if not speech_recognizer:
+        print("Speech recognizer is not available.")
+        sleep(2)
+        return
+
     TaskExecution = False
     ImageExecution = False
     ImageGenerationQuery = ""
     SetassistantStatus("Listening...")
-    Query = JarvisSpeechRecognition().run()
+    Query = speech_recognizer.recognize()
+    if not Query:
+        return
     ShowtextToScreen(f"{Username} : {Query}")
     SetassistantStatus("thinking...")
     Decision = FirstLayerDMW(Query)
     print("")
     print(f"Decision : {Decision}")
     print("")
+
+    # Image generation logic
+    image_tasks = [d for d in Decision if d.startswith("generate image")]
+    if image_tasks:
+        ImageGenerationQuery = image_tasks[0].replace("generate image", "").strip()
+        ImageExecution = True
+
     G = any([i for i in Decision if i.startswith("general")])
     R = any([i for i in Decision if i.startswith("realtime")])
     Mearged_query = " and ".join(
         [" ".join(i.split()[1:]) for i in Decision if i.startswith("general") or i.startswith("realtime")]
-
     )
     for queries in Decision:
-        if TaskExecution == False:
+        if not TaskExecution:
             if any(queries.startswith(func) for func in Functions):
-                Automation(list(Decision))
+                asyncio.run(Automation(list(Decision)))
                 TaskExecution = True
-    if ImageExecution == True:
-        with open(r"Frontend\Files\ImageGeneratoion.data", "w") as file:
+    if ImageExecution:
+        with open(r"Frontend\Files\ImageGeneration.data", "w") as file:
             file.write(f"{ImageGenerationQuery},True")
         try:
             p1 = subprocess.Popen(['python', r'Backened\ImageGeneration.py'], 
-
                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                   stdin=subprocess.PIPE, shell=False)
-
             subprocesses.append(p1)
         except Exception as e:
             print(f"Error starting ImageGeneration.py: {e}")
-    if G and R or R:
+    if (G and R) or R:
         SetassistantStatus("Searching...")
         Answer = RealtimeSearchEngine(QueryModifier(Mearged_query))
         ShowtextToScreen(f"{AssistantName} : {Answer}")
